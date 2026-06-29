@@ -23,7 +23,6 @@ function QuestionScreen({ setScreen, playerInfo, gameRoom, setFinalScore, gameMo
   useEffect(() => {
     const handleContextMenu = (e) => e.preventDefault();
     const handleKeyDown = (e) => {
-      // Block F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U completely
       if (
         e.keyCode === 123 || 
         (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || 
@@ -97,15 +96,15 @@ function QuestionScreen({ setScreen, playerInfo, gameRoom, setFinalScore, gameMo
   }
 
   const getRoundConfig = (roundNum) => {
-    const validatedNum = (roundNum >= 1 && roundNum <= 4) ? roundNum : 1;
-    switch (validatedNum) {
-      case 1: return { name: "Emoji Encyclopedia", total: 7, startIndex: 0 };
-      case 2: return { name: "Real or Fake Wikipedia?", total: 8, startIndex: 7 }; 
-      case 3: return { name: "Audience Poll Madness", total: 5, startIndex: 15 };  
-      case 4: return { name: "Wiki Detective", total: 7, startIndex: 20 };       
-      default: return { name: "Emoji Encyclopedia", total: 7, startIndex: 0 };
-    }
-  };
+  const validatedNum = (roundNum >= 1 && roundNum <= 4) ? roundNum : 1;
+  switch (validatedNum) {
+    case 1: return { name: "Wiki Link Explorer", total: 7, startIndex: 0 }; // 👈 Line 101 badli
+    case 2: return { name: "Real or Fake Wikipedia?", total: 8, startIndex: 7 }; 
+    case 3: return { name: "Audience Poll Madness", total: 5, startIndex: 15 };  
+    case 4: return { name: "Wiki Detective", total: 7, startIndex: 20 };       
+    default: return { name: "Wiki Link Explorer", total: 7, startIndex: 0 }; // 👈 Line 105 badli
+  }
+};
 
   const roundConfig = getRoundConfig(currentRound);
   const globalQuestionIndex = roundConfig.startIndex + currentQuestionIdx;
@@ -113,10 +112,12 @@ function QuestionScreen({ setScreen, playerInfo, gameRoom, setFinalScore, gameMo
   const targetIndex = (globalQuestionIndex < questionsList.length) ? globalQuestionIndex : 0;
   const rawQuestion = questionsList.length > 0 ? questionsList[targetIndex] : null;
 
+  // 🎯 CORE HANDLER: SCORES AND STREAKS AUTOMATION
   const handleAnswerSubmit = (selectedOption) => {
     let newScore = score;
+    let isCorrect = rawQuestion && selectedOption === rawQuestion.answer;
     
-    if (rawQuestion && selectedOption === rawQuestion.answer) {
+    if (isCorrect) {
       newScore = score + 10;
       setScore(newScore);
       
@@ -124,15 +125,22 @@ function QuestionScreen({ setScreen, playerInfo, gameRoom, setFinalScore, gameMo
         correctAudioRef.current.currentTime = 0;
         correctAudioRef.current.play().catch(err => console.log("Sound error:", err));
       }
-
-      if (!isSingle && playerInfo?.id) {
-        update(ref(db, `rooms/${gameRoom}/players/${playerInfo.id}`), { score: newScore });
-      }
     } else {
       if (wrongAudioRef.current) {
         wrongAudioRef.current.currentTime = 0;
         wrongAudioRef.current.play().catch(err => console.log("Sound error:", err));
       }
+    }
+
+    // 🌟 REALTIME DATA PIPELINE FOR DUO AND MANY MODES
+    if (!isSingle && playerInfo?.id) {
+      const playerInDb = allPlayers[playerInfo.id] || {};
+      const currentStreak = playerInDb.streak || 0;
+
+      update(ref(db, `rooms/${gameRoom}/players/${playerInfo.id}`), { 
+        score: newScore,
+        streak: isCorrect ? currentStreak + 1 : 0 // Correct par streak +1, galat par reset 0
+      }).catch(err => console.log("Firebase sync error:", err));
     }
 
     if (currentQuestionIdx < (roundConfig.total - 1)) {
@@ -271,4 +279,4 @@ function QuestionScreen({ setScreen, playerInfo, gameRoom, setFinalScore, gameMo
   );
 }
 
-export default QuestionScreen;
+export default QuestionScreen; 
