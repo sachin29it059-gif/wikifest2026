@@ -6,7 +6,7 @@ import { ref, set } from "firebase/database";
 function JoinScreen({ setScreen, setPlayerInfo, setGameRoom }) {
   const [name, setName] = useState("");
   const [realName, setRealName] = useState(""); 
-  const [room, setRoom] = useState("sati_event_grand");
+  const [room, setRoom] = useState("wikifest_final_2026");
   const [loading, setLoading] = useState(false);
 
   const handleJoin = async (e) => {
